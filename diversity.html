@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <style>
+      text{ font-family: Helvetica;
+      font-weight: 300;
+      font-size: 12px; }
+      #tooltip{
+        position: absolute;
+        z-index: 2;
+        background: gray;
+        width:160px;
+        height:42px;
+        color:white;
+        font-size: 14px;
+        padding:5px;
+        top:-150px;
+        left:-150px;
+        font-family: "HelveticaNeue-Light", "Helvetica Neue Light",
+        "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+    <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+    <link rel="stylesheet" href="css/Dashboard.css">
+    <script src="js/base.js"></script>
+    <script src="js/sparkline.js"></script>
+    <!-- sidebar -->
+    <div id="info">
+        <p>This dashboard displays Washongton populations by county.</p>
+        <div id="title">
+            <!-- Add a title -->
+            <h2>Washington Populations by County</h2>
+        </div>
+        <p id="placename">Washington</p>
+        <div id="count" class="card">
+            <h5 id="desc"> # Population in the selected county</h5>
+            <p id="county-count">Total WA Population in 2020: 7705281</p>
+            <h5 id="desc">County Population Through Time</h5>
+        </div>
+        <div id="county-chart"></div>
+        <div id="footer">
+            This dashboard can be improved by including an interactive slider that
+            can filter out specific years, then displaying the respective populations
+            in each county for that specific year in the choropleth map. <br/> Tommyhil Doan 11/30/2021
+        </div>
+    </div>
+    <!-- mainwindow -->
+    <div id="map"></div>
+    <div id="tooltip"></div>
+    <script>
+        // defines where map will be visualized
+        var height = 700;
+        var width = 975;
+        // adjusts projection of world map (80% scale value and translates to center map)
+        var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305])
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+        var color = d3.scaleLinear()
+                      .domain([0.1, 0.3, 0.5, 0.7, 0.9])
+                      .range(['#FFFF00', '#FFCC00', '#ff9900', '#ff6600', '#FF3300']);
+        var geoID = function(d) {
+                        return "c" + d.properties.diversityIndex;
+        };
+        svg.append("g")
+           .attr("class", "legend")
+           .attr("transform", "translate(550,650)");
+
+        var legendLinear = d3.legendColor()
+                             .shapeWidth(80)
+                             .orient('horizontal')
+                             .scale(color);
+
+        svg.select(".legend")
+           .call(legendLinear);
+
+        var hover = function(d) {
+            var div = document.getElementById('tooltip')
+            div.style.left = event.pageX +'px';
+            div.style.top = event.pageY + 'px';
+            div.innerHTML = d.properties.name + '<br> Diversity Index = '+ d.properties.diversityIndex;
+            d3.selectAll('path').attr('stroke', 'transperent')
+            d3.select(this).attr('stroke', 'grey')
+        };
+
+        var out = function(d) {
+            var div = document.getElementById('tooltip')
+            d3.select('this').transition().duration(500)
+              .style('stroke', function(d){return 'transparent'});
+        };
+
+        var radius = d3.scaleLinear().domain([0,12500000]).range([4,20]);
+
+        d3.json('usStateDiversity.geojson').then(function(data) {
+          console.log('usStateDiversity', data);
+          // loads data by joinsn the data to svg elements
+          svg.selectAll("path")
+             .data(data.features)
+             .enter()
+             .append("path")
+             .attr("d", path)
+             .attr('fill', function(d,i){return color(d.properties.diversityIndex);})
+             .attr('id', geoID)
+             .on("mouseover", hover)
+             .on("mouseout", out)
+        ;})
+    </script>
+</body>
+</html>
